@@ -1,0 +1,79 @@
+#include <Servo.h>
+
+const int buttonPin = 2;
+const int trigPin = 5;
+const int echoPin = 6;
+const int greenLEDPin = 7;
+const int redLEDPin = 8;
+
+Servo myServo;
+
+int buttonState = 0;
+int lastButtonState = 0;
+long duration;
+float distance;
+
+void setup() {
+  pinMode(buttonPin, INPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(greenLEDPin, OUTPUT);
+  pinMode(redLEDPin, OUTPUT);
+
+  myServo.attach(3);
+  myServo.write(0);
+
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Μέτρηση απόστασης
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration * 0.0343) / 2;
+
+  Serial.print("Απόσταση: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Ανάβουν LED ανάλογα με την πληρότητα
+  if (distance <= 5) {
+    digitalWrite(greenLEDPin, HIGH);  // Κάδος γεμάτος
+    digitalWrite(redLEDPin, LOW);
+  } else {
+    digitalWrite(greenLEDPin, LOW);
+    digitalWrite(redLEDPin, HIGH);    // Υπάρχει χώρος
+  }
+
+  // Ανίχνευση πατήματος κουμπιού
+  buttonState = digitalRead(buttonPin);
+
+  if (buttonState == HIGH && lastButtonState == LOW) {
+    if (distance > 5) {  // Άνοιξε μόνο αν δεν είναι γεμάτος
+      for (int pos = 0; pos <= 90; pos++) {
+        myServo.write(pos);
+        delay(15);
+      }
+
+      delay(2000);
+
+      for (int pos = 90; pos >= 0; pos--) {
+        myServo.write(pos);
+        delay(15);
+      }
+    } else {
+      Serial.println("Ο κάδος είναι γεμάτος - δεν ανοίγει");
+    }
+
+    delay(300);  // Απλό debounce
+  }
+
+  lastButtonState = buttonState;
+
+  delay(50);  // Σταθερό delay μεταξύ κύκλων
+}
